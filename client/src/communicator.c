@@ -5,10 +5,13 @@
 #include "vector.h"
 
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <sys/epoll.h>
+#include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -55,8 +58,16 @@ static void epoll_remove(int epollfd, int fd) {
 void start_interactive_session(int sock) {
     int epollfd = epoll_create1(EPOLL_CLOEXEC);
     ASSERT_PERROR_EXIT(epollfd >= 0, "epoll_create1");
+
+    static sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+    int sigfd = signalfd(-1, &mask, 0);
+
     epoll_add(epollfd, STDIN_FILENO, EPOLLIN);
     epoll_add(epollfd, sock, EPOLLIN | EPOLLRDHUP);
+    epoll_add(epollfd, sigfd, EPOLLIN);
 
     struct epoll_event event;
     unsigned char buf[BUF_SIZE];
@@ -74,7 +85,6 @@ void start_interactive_session(int sock) {
         if (event.data.fd == STDIN_FILENO) {
             int read_res = read(STDIN_FILENO, buf, BUF_SIZE);
             if (read_res <= 0) {
-                LOG("SHUT_WR sock\n");
                 shutdown(sock, SHUT_WR);
                 continue;
             }
@@ -88,6 +98,13 @@ void start_interactive_session(int sock) {
                 break;
             }
             write_n(buf, read_res, STDOUT_FILENO);
+        } else if (event.data.fd == sigfd) {
+            struct signalfd_siginfo fdsi;
+            read(sigfd, &fdsi, sizeof(fdsi));
+            unsigned char *msg;
+            giga_create_signal(&msg, fdsi.ssi_signo);
+            write_n(msg, 12, sock);
+            free(msg);
         }
     }
 }
@@ -107,7 +124,6 @@ int start_communication(int sock, int argc, char *argv[]) {
     ASSERT_EXIT(cmd_res >= 0, "%s\n", "Error while sending command to server\n");
     if (cmd_res > 0) {
         // spawn
-        LOG("Starting interactive mode\n");
         start_interactive_session(sock);
     } else {
         handle_http_response(sock);

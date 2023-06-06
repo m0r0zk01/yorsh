@@ -66,7 +66,6 @@ static int start_handler(int connection, char *argv[]) {
         int read_res = read_n(arr, 4, connection);
         if (read_res <= 0) { break; }
         uint32_t type = giga_load32(arr);
-
         if (type == MESSAGE) {
             read_res = read_n(arr, 4, connection);
             if (read_res <= 0) { break; }
@@ -79,11 +78,10 @@ static int start_handler(int connection, char *argv[]) {
         } else if (type == SIGNAL) {
             read_res = read_n(arr, 4, connection);  // skip
             if (read_res <= 0) { break; }
-            read_res = read_n(arr, 4, connection);  // skip
-            if (read_res <= 0) { break; }
             read_res = read_n(arr, 4, connection);
             if (read_res <= 0) { break; }
             uint32_t signal = giga_load32(arr);
+            LOG("sending signal %d to child\n", signal);
             kill(exec_pid, signal);
         }
     }

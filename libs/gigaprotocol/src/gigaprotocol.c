@@ -1,4 +1,5 @@
 #include "gigaprotocol.h"
+#include "utils.h"
 
 #include <inttypes.h>
 #include <netinet/in.h>
@@ -36,12 +37,12 @@ void giga_create_signal(unsigned char **dest, int signal) {
     *dest = calloc(12, 1);
     unsigned char arr[4];
 
-    giga_dump32(MESSAGE, arr);
+    giga_dump32(SIGNAL, arr);
     memcpy(*dest, arr, 4);
 
     giga_dump32(4, arr);
-    memcpy(*dest, arr, 4);
+    memcpy(*dest + 4, arr, 4);
 
     giga_dump32(signal, arr);
-    memcpy(*dest, arr, 4);
+    memcpy(*dest + 8, arr, 4);
 }
