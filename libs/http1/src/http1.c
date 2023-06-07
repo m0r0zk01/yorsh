@@ -17,7 +17,7 @@ const char *http1_method_strings[] = {
 char *str(char *s) {
     size_t size = strlen(s);
     char *res = calloc(size + 1, 1);
-    strncpy(res, s, size);
+    memcpy(res, s, size);
     res[size] = '\0';
     return res;
 }
@@ -245,7 +245,7 @@ int http1_parse_response_headers(char *data, size_t size, http1_response *resp) 
     cur = next + 1;
     next = find_next(cur, end, '\r');
     ASSERT_RETURN(next != end && next + 1 != end && *(next + 1) == '\n', -1, "No CRLF after HTTP satus_string\n");
-    strncpy(resp->status_string, cur, sizeof(resp->status_string) - 1);
+    memcpy(resp->status_string, cur, sizeof(resp->status_string) - 1);
     resp->status_string[next - cur] = '\0';
 
     // parse headers
@@ -429,4 +429,40 @@ int http1_read_request(int sock, http1_request *req) {
 
 int http1_read_response(int sock, http1_response *resp) {
     return http1_read(sock, resp, 0);
+}
+
+void http1_add_header_request(char *key, char *value, http1_request *req) {
+    http1_header content_length;
+
+    content_length.key = copy_string(key);
+    content_length.key_len = strlen(content_length.key);
+
+    content_length.value = copy_string(value);
+    content_length.value_len = strlen(content_length.value);
+
+    vector_push_back_http1_header(&req->headers, content_length);
+}
+
+void http1_add_header_response(char *key, char *value, http1_response *resp) {
+    http1_header content_length;
+
+    content_length.key = copy_string(key);
+    content_length.key_len = strlen(content_length.key);
+
+    content_length.value = copy_string(value);
+    content_length.value_len = strlen(content_length.value);
+
+    vector_push_back_http1_header(&resp->headers, content_length);
+}
+
+void http1_set_body_request(char *body, size_t body_len, http1_request *req) {
+    free(req->body);
+    req->body = copy_substring(body, body + body_len);
+    req->body_len = body_len;
+}
+
+void http1_set_body_response(char *body, size_t body_len, http1_response *resp) {
+    free(resp->body);
+    resp->body = copy_substring(body, body + body_len);
+    resp->body_len = body_len;
 }

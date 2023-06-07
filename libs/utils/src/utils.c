@@ -7,7 +7,7 @@
 char *copy_substring(char *begin, char *end) {
     size_t len = end - begin;
     char *str = calloc(len + 1, 1);
-    strncpy(str, begin, len);
+    memcpy(str, begin, len);
     str[len] = '\0';
     return str;
 }
@@ -15,7 +15,7 @@ char *copy_substring(char *begin, char *end) {
 char *copy_string(char *begin) {
     size_t len = strlen(begin);
     char *str = calloc(len + 1, 1);
-    strncpy(str, begin, len);
+    memcpy(str, begin, len);
     str[len] = '\0';
     return str;
 }

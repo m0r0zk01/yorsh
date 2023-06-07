@@ -12,7 +12,8 @@
 /**/
 typedef enum {
     MESSAGE,
-    SIGNAL
+    SIGNAL,
+    EOF
 } giga_t;
 
 void giga_dump32(uint32_t n, unsigned char arr[4]);
@@ -20,3 +21,4 @@ uint32_t giga_load32(unsigned char arr[4]);
 
 void giga_create_message(unsigned char **dest, unsigned char *buf, size_t n);
 void giga_create_signal(unsigned char **dest, int signal);
+void giga_create_eof(unsigned char **dest);

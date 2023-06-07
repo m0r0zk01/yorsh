@@ -94,3 +94,9 @@ void http1_free_response(http1_response *resp);
 
 int http1_read_request(int sock, http1_request *req);
 int http1_read_response(int sock, http1_response *resp);
+
+void http1_add_header_request(char *key, char *value, http1_request *req);
+void http1_add_header_response(char *key, char *value, http1_response *resp);
+
+void http1_set_body_request(char *body, size_t body_len, http1_request *req);
+void http1_set_body_response(char *body, size_t body_len, http1_response *resp);

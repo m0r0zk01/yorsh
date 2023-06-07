@@ -23,15 +23,35 @@ int send_command(int sock, int argc, char *argv[]) {
     req.method = GET;
 
     _Bool is_spawn = strcmp(argv[0], "spawn") == 0;
-    for (int i = 0; i < argc; ++i) {
-        vector_push_back_string(&req.path, copy_string(argv[i]));
+    vector_push_back_string(&req.path, copy_string(argv[0]));
+    if (!is_spawn) {
+        for (int i = 1; i < argc; ++i) {
+            vector_push_back_string(&req.path, copy_string(argv[i]));
+        }
+    } else {
+        req.body_len = argc;
+        for (int i = 1; i < argc; ++i) {
+            req.body_len += strlen(argv[i]);
+        }
+        free(req.body);
+        req.body = calloc(req.body_len, 1);
+        size_t written = 0;
+        for (int i = 1; i < argc; ++i) {
+            size_t len = strlen(argv[i]);
+            memcpy(req.body + written, argv[i], len);
+            written += len;
+            req.body[written++] = ' ';
+        }
+        req.body[written ? written - 1 : written] = '\0';
+        char to_str[100] = {0};
+        sprintf(to_str, "%zu", req.body_len);
+        http1_add_header_request("Content-Length", to_str, &req);
     }
 
     char *buf;
     size_t size;
     http1_dumps_request(&buf, &size, &req);
     write_n(buf, size, sock);
-
     free(buf);
     http1_free_request(&req);
 
@@ -39,7 +59,7 @@ int send_command(int sock, int argc, char *argv[]) {
 }
 
 /*
- * Add `fd` to `epollfd` for reading
+ * Add `fd` to `epollfd`
  */
 static void epoll_add(int epollfd, int fd, int events) {
     struct epoll_event event_tcp = {.events = events};
@@ -85,7 +105,10 @@ void start_interactive_session(int sock) {
         if (event.data.fd == STDIN_FILENO) {
             int read_res = read(STDIN_FILENO, buf, BUF_SIZE);
             if (read_res <= 0) {
-                shutdown(sock, SHUT_WR);
+                unsigned char *msg;
+                giga_create_eof(&msg);
+                write_n(msg, 8, sock);
+                free(msg);
                 continue;
             }
             unsigned char *msg;
@@ -103,9 +126,13 @@ void start_interactive_session(int sock) {
             read(sigfd, &fdsi, sizeof(fdsi));
             unsigned char *msg;
             giga_create_signal(&msg, fdsi.ssi_signo);
-            write_n(msg, 12, sock);
+            write_n(msg, 8, sock);
             free(msg);
         }
+    }
+    int read_res = 0;
+    while ((read_res = read(sock, buf, BUF_SIZE)) > 0) {
+        write_n(buf, read_res, STDOUT_FILENO);
     }
 }
 

@@ -40,9 +40,13 @@ void giga_create_signal(unsigned char **dest, int signal) {
     giga_dump32(SIGNAL, arr);
     memcpy(*dest, arr, 4);
 
-    giga_dump32(4, arr);
-    memcpy(*dest + 4, arr, 4);
-
     giga_dump32(signal, arr);
-    memcpy(*dest + 8, arr, 4);
+    memcpy(*dest + 4, arr, 4);
+}
+
+void giga_create_eof(unsigned char **dest) {
+    *dest = calloc(12, 1);
+    unsigned char arr[4];
+    giga_dump32(EOF, arr);
+    memcpy(*dest, arr, 4);
 }

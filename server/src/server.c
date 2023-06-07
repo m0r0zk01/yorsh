@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,6 +100,11 @@ int _main(int argc, char *argv[]) {
     ASSERT_PERROR_EXIT(epollfd >= 0, "epoll_create1");
     epoll_add(epollfd, sock);
 
+    // daemon(1, 0);
+
+    struct sigaction sa = {.sa_handler = SIG_IGN, .sa_flags = SA_RESTART};
+    sigaction(SIGCHLD, &sa, NULL);
+
     // start accepting connections
     LOG("Created server socket & epollfd\n");
     struct epoll_event event;
@@ -116,6 +122,7 @@ int _main(int argc, char *argv[]) {
 
         int fd = event.data.fd;
         if (fd == sock) {
+            LOG("Got new connection\n");
             int res = new_connection(fd);
             if (res != 0) {
                 LOG("Failed to create new connection\n");
