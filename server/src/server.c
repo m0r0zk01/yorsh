@@ -100,7 +100,7 @@ int _main(int argc, char *argv[]) {
     ASSERT_PERROR_EXIT(epollfd >= 0, "epoll_create1");
     epoll_add(epollfd, sock);
 
-    // daemon(1, 0);
+    daemon(1, 0);
 
     struct sigaction sa = {.sa_handler = SIG_IGN, .sa_flags = SA_RESTART};
     sigaction(SIGCHLD, &sa, NULL);
